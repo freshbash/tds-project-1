@@ -18,9 +18,7 @@ app = FastAPI()
 class TaskRequest(BaseModel):
     task: str
 
-LLM_API_URL_COMPLETIONS = os.getenv("LLM_API_URL_COMPLETIONS")
-LLM_API_URL_EMBEDDINGS = os.getenv("LLM_API_URL_EMBEDDINGS")
-API_KEY = os.getenv("API_KEY")
+API_KEY = os.getenv("AIPROXY_TOKEN")
 
 def execute_query(query, params=()):
     """Executes a SQL query and returns the result."""
@@ -38,8 +36,6 @@ def execute_query(query, params=()):
 def api_call_to_llm(system: str, content: str, task="completions") -> str:
     """API calls to GPT-4o-mini"""
 
-    endpoint = LLM_API_URL_COMPLETIONS if task == "completions" else LLM_API_URL_EMBEDDINGS
-
     # Make the API request
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -47,7 +43,7 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
     }
 
     if task == "completions":
-        endpoint = LLM_API_URL_COMPLETIONS
+        endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
         payload = {
             "model": "gpt-4o-mini",
             "messages":[
@@ -57,13 +53,13 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
             "temperature": 0.0
         }
     else:
-        endpoint = LLM_API_URL_EMBEDDINGS
+        endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/chat/embeddings"
         payload = {
             "input": content,
-            "model": "gpt-4o-mini"  # Use a suitable embedding model
+            "model": "gpt-4o-mini"
         }
 
-    response = httpx.post(endpoint, json=payload, headers=headers).json()
+    response = httpx.post(url=endpoint, json=payload, headers=headers).json()
 
     if task == "completions":
         return response["choices"][0]["message"]["content"].strip()
@@ -72,7 +68,7 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
 
 def interpret_task(task: str) -> str:
     """Interprets a task description and categorizes it."""
-    return api_call_to_llm(INTERPRET_TASK_PROMPT, task, task="completions")
+    return api_call_to_llm(system=INTERPRET_TASK_PROMPT, content=task, task="completions")
 
 def execute_task(task: str) -> str:
     """Executes a given task and returns the result."""
