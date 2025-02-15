@@ -1,5 +1,8 @@
 fastapi
+uvicorn
 pydantic
 httpx
 numpy
 scikit-learn
+markdown
+pandas

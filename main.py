@@ -264,7 +264,6 @@ def execute_task(task: str) -> str:
             with open("/data/ticket-sales-gold.txt", "w") as f:
                 f.write(str(total_sales))
             return {"message": "Total sales for Gold tickets computed successfully"}
-
         else:
             raise ValueError("Unknown task")
         
