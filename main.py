@@ -10,6 +10,8 @@ import httpx
 import base64
 import sqlite3
 from prompt import INTERPRET_TASK_PROMPT
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = FastAPI()
 
@@ -38,25 +40,35 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
 
     endpoint = LLM_API_URL_COMPLETIONS if task == "completions" else LLM_API_URL_EMBEDDINGS
 
-    # Define the API request payload
-    payload = {
-        "model": "gpt-4o-mini",
-        "messages":[
-            {"role": "system", "content": system},
-            {"role": "user", "content": content}
-        ],
-        "temperature": 0.0
-    }
-
     # Make the API request
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
 
-    response = httpx.post(endpoint, json=payload, headers=headers)
+    if task == "completions":
+        endpoint = LLM_API_URL_COMPLETIONS
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages":[
+                {"role": "system", "content": system},
+                {"role": "user", "content": content}
+            ],
+            "temperature": 0.0
+        }
+    else:
+        endpoint = LLM_API_URL_EMBEDDINGS
+        payload = {
+            "input": content,
+            "model": "gpt-4o-mini"  # Use a suitable embedding model
+        }
 
-    return response["choices"][0]["message"]["content"].strip()
+    response = httpx.post(endpoint, json=payload, headers=headers).json()
+
+    if task == "completions":
+        return response["choices"][0]["message"]["content"].strip()
+    else:
+        return response['data'][0]['embedding']
 
 def interpret_task(task: str) -> str:
     """Interprets a task description and categorizes it."""
@@ -215,18 +227,30 @@ def execute_task(task: str) -> str:
             with open(comments_file, "r", encoding="utf-8") as file:
                 comments = [line.strip() for line in file.readlines() if line.strip()]
             
-            model = SentenceTransformer("all-MiniLM-L6-v2")
-            embeddings = model.encode(comments, convert_to_tensor=True)
-            similarity_matrix = util.pytorch_cos_sim(embeddings, embeddings)
-            
-            max_sim = -1
-            most_similar_pair = ("", "")
+            comment_embeddings = dict()
+
+            for comment in comments:
+                embedding = api_call_to_llm("Find similar comments", comment, task="embeddings")
+                comment_embeddings[comment] = embedding
+
+            # Extract comments and embeddings
+            comments = list(comment_embeddings.keys())
+            embeddings = np.array(list(comment_embeddings.values()))
+
+            # Compute cosine similarity matrix
+            similarity_matrix = cosine_similarity(embeddings)
+
+            # Find pairs of most similar comments
+            similar_pairs = []
             for i in range(len(comments)):
                 for j in range(i + 1, len(comments)):
-                    sim = similarity_matrix[i][j].item()
-                    if sim > max_sim:
-                        max_sim = sim
-                        most_similar_pair = (comments[i], comments[j])
+                    similarity = similarity_matrix[i, j]
+                    similar_pairs.append((comments[i], comments[j], similarity))
+
+            # Sort pairs by similarity score (descending order)
+            similar_pairs = sorted(similar_pairs, key=lambda x: x[2], reverse=True)
+
+            most_similar_pair = list(similar_pairs[0][:2])
             
             with open(output_file, "w", encoding="utf-8") as file:
                 file.write("\n".join(most_similar_pair))
