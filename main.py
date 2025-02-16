@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 import os
 import subprocess
@@ -95,9 +96,9 @@ def execute_task(task: str) -> str:
             return "datagen.py executed successfully"
         
         elif std_task["category"] == "format using prettier":
-            if not shutil.which("prettier"):
-                subprocess.run(["npm", "install", "-g", "prettier@3.4.2"], check=True)
-            subprocess.run(["prettier", "--write", "/data/format.md"], check=True)
+            if not shutil.which("npx"):
+                raise HTTPException(status_code=500, detail="npx not found")
+            subprocess.run(["npx", "prettier@3.4.2", "--write", "./data/format.md"], check=True)
             return "File formatted successfully"
         
         elif std_task["category"] == "count wednesdays":
@@ -298,4 +299,4 @@ def read_file(path: str = Query(..., description="Path to the file")):
     with open(mod_path, "r", encoding="utf-8") as file:
         content = file.read()
     
-    return content
+    return PlainTextResponse(content=f"""{content}""")
