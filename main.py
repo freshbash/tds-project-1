@@ -44,12 +44,11 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
     """API calls to GPT-4o-mini"""
 
     # Make the API request
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
-
     if task == "completions":
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        }
         endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
         payload = {
             "model": "gpt-4o-mini",
@@ -61,9 +60,12 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
         }
     elif task == "embeddings":
         endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/embeddings"
+        headers = {
+            "Authorization": f"Bearer {API_KEY}"
+        }
         payload = {
-            "input": content,
-            "model": "text-embedding-3-small"
+            "model": "text-embedding-3-small",
+            "input": content            
         }
     
     elif task == "vision":
@@ -261,37 +263,20 @@ def execute_task(task: str) -> str:
                 raise HTTPException(status_code=404, detail="File not found")
             
             with open(comments_file, "r", encoding="utf-8") as file:
-                comments = [line.strip() for line in file.readlines() if line.strip()]
-
+                comments = [line.strip() for line in file.readlines() if line.strip()]            
             
             
-            comment_embeddings = dict()
+            embeddings = api_call_to_llm(system="Find similar comments", content=comments, task="embeddings")
 
-            for comment in comments:
-                embedding = api_call_to_llm(system="Find similar comments", content=comment, task="embeddings")
-                comment_embeddings[comment] = embedding
-
-            # Extract comments and embeddings
-            comments = list(comment_embeddings.keys())
-            embeddings = np.array(list(comment_embeddings.values()))
-
-            # Compute cosine similarity matrix
-            similarity_matrix = cosine_similarity(embeddings)
-
-            # Find pairs of most similar comments
-            similar_pairs = []
-            for i in range(len(comments)):
-                for j in range(i + 1, len(comments)):
-                    similarity = similarity_matrix[i, j]
-                    similar_pairs.append((comments[i], comments[j], similarity))
-
-            # Sort pairs by similarity score (descending order)
-            similar_pairs = sorted(similar_pairs, key=lambda x: x[2], reverse=True)
-
-            most_similar_pair = list(similar_pairs[0][:2])
+            similarity = np.dot(embeddings, embeddings.T)
+            # Create mask to ignore diagonal (self-similarity)
+            np.fill_diagonal(similarity, -np.inf)
+            # Get indices of maximum similarity
+            i, j = np.unravel_index(similarity.argmax(), similarity.shape)
+            result = "\n".join(sorted([comments[i], comments[j]]))
             
             with open(output_file, "w", encoding="utf-8") as file:
-                file.write("\n".join(most_similar_pair))
+                file.write(result)
             
             return f"Found most similar comments and wrote to {output_file}"
 
