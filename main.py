@@ -57,19 +57,39 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
             ],
             "temperature": 0.0
         }
-    else:
+    elif task == "embeddings":
         endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/embeddings"
         payload = {
             "input": content,
             "model": "text-embedding-3-small"
+        }
+    
+    elif task == "vision":
+        endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": system},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": content},
+                        },
+                    ],
+                }
+            ],            
         }
 
     response = httpx.post(url=endpoint, json=payload, headers=headers).json()
 
     if task == "completions":
         return response["choices"][0]["message"]["content"].strip()
-    else:
+    elif task == "embeddings":
         return response['data'][0]['embedding']
+    elif task == "vision":
+        return response.choices[0]
 
 def interpret_task(task: str) -> str:
     """Interprets a task description and categorizes it."""
@@ -223,7 +243,9 @@ def execute_task(task: str) -> str:
             
             image_uri = f"data:image/png;base64,{image_b64}"
 
-            credit_card_number = api_call_to_llm(system=system_message, content=image_uri)
+            credit_card_number = api_call_to_llm(system=system_message, content=image_uri, task="vision")
+
+            print(f"!!!!!!!!!CREDIT CARD NUMBER RESPONSE!!!!!!!!!!!! ----> {credit_card_number}")
             
             with open(output_file, "w", encoding="utf-8") as file:
                 file.write(credit_card_number.strip())
