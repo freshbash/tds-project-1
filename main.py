@@ -17,6 +17,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 from PIL import Image
 import pytesseract
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
@@ -262,36 +263,17 @@ def execute_task(task: str) -> str:
             
             with open(comments_file, "r", encoding="utf-8") as file:
                 comments = [line.strip() for line in file.readlines() if line.strip()]
+
+            model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
             
-            comment_embeddings = dict()
-
-            for comment in comments:
-                embedding = api_call_to_llm(system="Find similar comments", content=comment, task="embeddings")
-                comment_embeddings[comment] = embedding
-
-            # Extract comments and embeddings
-            comments = list(comment_embeddings.keys())
-            embeddings = np.array(list(comment_embeddings.values()))
-
-            # Compute cosine similarity matrix
+            embeddings = np.array([model.encode(comment, convert_to_numpy=True) for comment in comments])
             similarity_matrix = cosine_similarity(embeddings)
-
-            # Find pairs of most similar comments
-            similar_pairs = []
-            for i in range(len(comments)):
-                for j in range(i + 1, len(comments)):
-                    similarity = similarity_matrix[i, j]
-                    similar_pairs.append((comments[i], comments[j], similarity))
-
-            # Sort pairs by similarity score (descending order)
-            similar_pairs = sorted(similar_pairs, key=lambda x: x[2], reverse=True)
-
-            most_similar_pair = list(similar_pairs[0][:2])
             
-            with open(output_file, "w", encoding="utf-8") as file:
-                file.write("\n".join(most_similar_pair))
+            np.fill_diagonal(similarity_matrix, 0)
+            most_similar_indices = np.unravel_index(np.argmax(similarity_matrix), similarity_matrix.shape)
             
-            return f"Found most similar comments and wrote to {output_file}"
+            with open(output_file, "w", encoding="utf-8") as output_file:
+                output_file.write(f"{comments[most_similar_indices[0]]}\n{comments[most_similar_indices[1]]}")
 
         elif std_task["category"] == "find total sales of 'gold' ticket type in the db table":
             query = "SELECT SUM(total_sales) FROM (SELECT (units * price) AS total_sales FROM tickets WHERE LOWER(TRIM(type))='gold')"
