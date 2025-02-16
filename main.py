@@ -291,10 +291,11 @@ def run_task(task: str = Query(..., description="Task description")):
 @app.get("/read")
 def read_file(path: str = Query(..., description="Path to the file")):
     """Returns the content of the specified file."""
-    if not os.path.exists(path):
+    mod_path = os.path.join(os.getcwd(), path)
+    if not os.path.exists(mod_path):
         raise HTTPException(status_code=404, detail="File not found")
     
-    with open(path, "r", encoding="utf-8") as file:
+    with open(mod_path, "r", encoding="utf-8") as file:
         content = file.read()
     
     return content
