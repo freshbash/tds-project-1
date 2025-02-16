@@ -265,7 +265,7 @@ def execute_task(task: str) -> str:
             with open(comments_file, "r", encoding="utf-8") as file:
                 comments = [line.strip() for line in file.readlines() if line.strip()]            
             
-            response = api_call_to_llm(system="Find similar comments", content=comments, task="embeddings").json()["data"]
+            response = api_call_to_llm(system="Find similar comments", content=comments, task="embeddings")["data"]
 
             embeddings = np.array([sample["embedding"] for sample in response])
             similarity = np.dot(embeddings, embeddings.T)
