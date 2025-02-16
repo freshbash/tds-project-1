@@ -14,6 +14,9 @@ import sqlite3
 from prompt import INTERPRET_TASK_PROMPT
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -43,6 +46,8 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
+
+    print(f"API_KEY: {API_KEY}")
 
     if task == "completions":
         endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
@@ -105,7 +110,7 @@ def execute_task(task: str) -> str:
             date_file = "./data/dates.txt"
             output_file = "./data/dates-wednesdays.txt"
             if not os.path.exists(date_file):
-                raise HTTPException(status_code=404, detail="File not found")
+                raise HTTPException(status_code=500, detail="File not found")
             
             with open(date_file, "r", encoding="utf-8") as file:
                 dates = file.readlines()
