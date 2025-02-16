@@ -91,9 +91,7 @@ def execute_task(task: str) -> str:
             if not shutil.which("uv"):
                 subprocess.run(["pip", "install", "uv"], check=True)
             script_url = "https://raw.githubusercontent.com/sanand0/tools-in-data-science-public/tds-2025-01/project-1/datagen.py"
-            script_path = "datagen.py"
-            urllib.request.urlretrieve(script_url, script_path)
-            subprocess.run(["python", script_path, user_email], check=True)
+            subprocess.run(["uv", "run", script_url, user_email, "--root", "./data"], check=True)
             return "datagen.py executed successfully"
         
         elif std_task["category"] == "format using prettier":
