@@ -7,3 +7,5 @@ scikit-learn
 markdown
 pandas
 python-dateutil
+faker
+pillow
