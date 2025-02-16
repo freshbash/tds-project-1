@@ -27,7 +27,7 @@ API_KEY = os.getenv("AIPROXY_TOKEN")
 
 def execute_query(query, params=()):
     """Executes a SQL query and returns the result."""
-    db_path = "/data/ticket-sales.db"
+    db_path = "./data/ticket-sales.db"
     if not os.path.exists(db_path):
         raise HTTPException(status_code=404, detail="Database not found")
     
@@ -209,7 +209,7 @@ def execute_task(task: str) -> str:
             return f"Extracted sender's email and wrote to {output_file}"
 
         elif std_task["category"] == "extract credit card number":
-            image_path = "./data/credit-card.png"
+            image_path = "./data/credit_card.png"
             output_file = "./data/credit-card.txt"
             
             if not os.path.exists(image_path):
