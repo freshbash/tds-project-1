@@ -91,7 +91,7 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
     if task == "completions":
         return response["choices"][0]["message"]["content"].strip()
     elif task == "embeddings":
-        return response['data'][0]['embedding']
+        return response
     elif task == "vision":
         return response["choices"][0]
 
@@ -265,9 +265,9 @@ def execute_task(task: str) -> str:
             with open(comments_file, "r", encoding="utf-8") as file:
                 comments = [line.strip() for line in file.readlines() if line.strip()]            
             
-            print("COMPUTING EMBEDDINGS")
-            embeddings = api_call_to_llm(system="Find similar comments", content=comments, task="embeddings")
+            response = api_call_to_llm(system="Find similar comments", content=comments, task="embeddings").json()["data"]
 
+            embeddings = np.array([sample["embedding"] for sample in response])
             similarity = np.dot(embeddings, embeddings.T)
             # Create mask to ignore diagonal (self-similarity)
             np.fill_diagonal(similarity, -np.inf)
