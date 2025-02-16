@@ -15,6 +15,8 @@ from prompt import INTERPRET_TASK_PROMPT
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
+from PIL import Image
+import pytesseract
 
 load_dotenv()
 
@@ -89,7 +91,7 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
     elif task == "embeddings":
         return response['data'][0]['embedding']
     elif task == "vision":
-        return response.choices[0]
+        return response["choices"][0]
 
 def interpret_task(task: str) -> str:
     """Interprets a task description and categorizes it."""
@@ -235,17 +237,16 @@ def execute_task(task: str) -> str:
             if not os.path.exists(image_path):
                 raise HTTPException(status_code=404, detail="Image not found")
             
-            system_message = "Extract the credit card number from the given image. Return just the credit card number without spaces."
-
-            with open(image_path, "rb") as file:
-                binary_data = file.read()
-                image_b64 = base64.b64encode(binary_data).decode()
+            if not shutil.which("tesseract"):
+                subprocess.run(["apt-get", "update"], check=True)
+                subprocess.run(["apt-get", "install", "-y", "tesseract-ocr"], check=True)
             
-            image_uri = f"data:image/png;base64,{image_b64}"
+            system_message = "Extract the credit card number from the given text. Return just the credit card number without any spaces."
 
-            credit_card_number = api_call_to_llm(system=system_message, content=image_uri, task="vision")
+            image = Image.open(image_path)
+            extracted_text = pytesseract.image_to_string(image)
 
-            print(f"!!!!!!!!!CREDIT CARD NUMBER RESPONSE!!!!!!!!!!!! ----> {credit_card_number}")
+            credit_card_number = api_call_to_llm(system=system_message, content=extracted_text)
             
             with open(output_file, "w", encoding="utf-8") as file:
                 file.write(credit_card_number.strip())
