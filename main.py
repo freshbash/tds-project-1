@@ -92,7 +92,6 @@ def execute_task(task: str) -> str:
                 subprocess.run(["pip", "install", "uv"], check=True)
             script_url = "https://raw.githubusercontent.com/sanand0/tools-in-data-science-public/tds-2025-01/project-1/datagen.py"
             subprocess.run(["uv", "run", script_url, user_email, "--root", "./data"], check=True)
-            print(os.listdir())
             return "datagen.py executed successfully"
         
         elif std_task["category"] == "format using prettier":
@@ -292,10 +291,7 @@ def run_task(task: str = Query(..., description="Task description")):
 @app.get("/read")
 def read_file(path: str = Query(..., description="Path to the file")):
     """Returns the content of the specified file."""
-    mod_path = os.path.join(os.getcwd(), path)
-    print(f"modified path:{mod_path}")
-    print(os.listdir())
-    print(os.listdir("/data"))
+    mod_path = "." + path
     if not os.path.exists(mod_path):
         raise HTTPException(status_code=404, detail="File not found")
     
