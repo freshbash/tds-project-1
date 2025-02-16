@@ -102,8 +102,8 @@ def execute_task(task: str) -> str:
             return "File formatted successfully"
         
         elif std_task["category"] == "count wednesdays":
-            date_file = "/data/dates.txt"
-            output_file = "/data/dates-wednesdays.txt"
+            date_file = "./data/dates.txt"
+            output_file = "./data/dates-wednesdays.txt"
             if not os.path.exists(date_file):
                 raise HTTPException(status_code=404, detail="File not found")
             
@@ -123,8 +123,8 @@ def execute_task(task: str) -> str:
             return f"Counted {wednesday_count} Wednesdays and wrote to {output_file}"
         
         elif std_task["category"] == "sort array of contacts":
-            contacts_file = "/data/contacts.json"
-            sorted_file = "/data/contacts-sorted.json"
+            contacts_file = "./data/contacts.json"
+            sorted_file = "./data/contacts-sorted.json"
             if not os.path.exists(contacts_file):
                 raise HTTPException(status_code=404, detail="File not found")
             
@@ -139,8 +139,8 @@ def execute_task(task: str) -> str:
             return f"Sorted contacts and wrote to {sorted_file}"
         
         elif std_task["category"] == "write 10 most recent logs":
-            logs_dir = "/data/logs"
-            output_file = "/data/logs-recent.txt"
+            logs_dir = "./data/logs"
+            output_file = "./data/logs-recent.txt"
             
             if not os.path.exists(logs_dir):
                 raise HTTPException(status_code=404, detail="Logs directory not found")
@@ -164,8 +164,8 @@ def execute_task(task: str) -> str:
 
         elif std_task["category"] == "find markdown files and extract h1 tags":
             # Incorrect output format and output different that expected
-            docs_dir = "/data/docs"
-            index_file = "/data/docs/index.json"
+            docs_dir = "./data/docs"
+            index_file = "./data/docs/index.json"
             
             if not os.path.exists(docs_dir):
                 raise HTTPException(status_code=404, detail="Docs directory not found")
@@ -188,8 +188,8 @@ def execute_task(task: str) -> str:
             return f"Created Markdown index at {index_file}"
         
         elif std_task["category"] == "extract sender email address":
-            email_file = "/data/email.txt"
-            output_file = "/data/email-sender.txt"
+            email_file = "./data/email.txt"
+            output_file = "./data/email-sender.txt"
             
             if not os.path.exists(email_file):
                 raise HTTPException(status_code=404, detail="File not found")
@@ -207,8 +207,8 @@ def execute_task(task: str) -> str:
             return f"Extracted sender's email and wrote to {output_file}"
 
         elif std_task["category"] == "extract credit card number":
-            image_path = "/data/credit-card.png"
-            output_file = "/data/credit-card.txt"
+            image_path = "./data/credit-card.png"
+            output_file = "./data/credit-card.txt"
             
             if not os.path.exists(image_path):
                 raise HTTPException(status_code=404, detail="Image not found")
@@ -229,8 +229,8 @@ def execute_task(task: str) -> str:
             return f"Extracted credit card number and wrote to {output_file}"
 
         elif std_task["category"] == "find similar comments":
-            comments_file = "/data/comments.txt"
-            output_file = "/data/comments-similar.txt"
+            comments_file = "./data/comments.txt"
+            output_file = "./data/comments-similar.txt"
             
             if not os.path.exists(comments_file):
                 raise HTTPException(status_code=404, detail="File not found")
@@ -272,7 +272,7 @@ def execute_task(task: str) -> str:
             query = "SELECT SUM(units * price) FROM tickets WHERE type = 'Gold'"
             result = execute_query(query)
             total_sales = result[0][0] if result[0][0] is not None else 0
-            with open("/data/ticket-sales-gold.txt", "w") as f:
+            with open("./data/ticket-sales-gold.txt", "w") as f:
                 f.write(str(total_sales))
             return {"message": "Total sales for Gold tickets computed successfully"}
         else:
