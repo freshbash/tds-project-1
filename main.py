@@ -47,8 +47,6 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
         "Content-Type": "application/json"
     }
 
-    print(f"API_KEY: {API_KEY}")
-
     if task == "completions":
         endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
         payload = {
@@ -168,7 +166,6 @@ def execute_task(task: str) -> str:
             return f"Extracted first lines from recent logs and wrote to {output_file}"
 
         elif std_task["category"] == "find markdown files and extract h1 tags":
-            # Incorrect output format and output different that expected
             docs_dir = "./data/docs"
             index_file = "./data/docs/index.json"
             
@@ -183,7 +180,7 @@ def execute_task(task: str) -> str:
                         with open(file_path, "r", encoding="utf-8") as f:
                             for line in f:
                                 if line.startswith("# "):
-                                    title = line.strip("# ").strip()
+                                    title = line.strip()[2:]
                                     index[os.path.relpath(file_path, docs_dir)] = title
                                     break
             
