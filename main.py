@@ -6,6 +6,7 @@ import shutil
 import urllib.request
 import json
 from datetime import datetime
+from dateutil import parser
 import httpx
 import base64
 import sqlite3
@@ -53,10 +54,10 @@ def api_call_to_llm(system: str, content: str, task="completions") -> str:
             "temperature": 0.0
         }
     else:
-        endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/chat/embeddings"
+        endpoint = "http://aiproxy.sanand.workers.dev/openai/v1/embeddings"
         payload = {
             "input": content,
-            "model": "gpt-4o-mini"
+            "model": "text-embedding-3-small"
         }
 
     response = httpx.post(url=endpoint, json=payload, headers=headers).json()
@@ -73,11 +74,20 @@ def interpret_task(task: str) -> str:
 def execute_task(task: str) -> str:
     """Executes a given task and returns the result."""
 
-    std_task = interpret_task(task)
+    task_str = interpret_task(task)
+    try:
+        std_task = json.loads(task_str)
+        if isinstance(std_task, dict) and "category" in std_task:
+            pass
+        else:
+            return "Invalid JSON format from LLM."
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON: {e}")
+        raise Exception("Failed to parse JSON")
 
     try:
-        if std_task == "Install uv library and run script":
-            user_email = task.split()[-1]  # Extract email argument
+        if std_task["category"] == "install uv library and run datagen":
+            user_email = std_task["argument"]
             if not shutil.which("uv"):
                 subprocess.run(["pip", "install", "uv"], check=True)
             script_url = "https://raw.githubusercontent.com/sanand0/tools-in-data-science-public/tds-2025-01/project-1/datagen.py"
@@ -86,13 +96,13 @@ def execute_task(task: str) -> str:
             subprocess.run(["python", script_path, user_email], check=True)
             return "datagen.py executed successfully"
         
-        elif std_task == "Format using prettier":
+        elif std_task["category"] == "format using prettier":
             if not shutil.which("prettier"):
                 subprocess.run(["npm", "install", "-g", "prettier@3.4.2"], check=True)
             subprocess.run(["prettier", "--write", "/data/format.md"], check=True)
             return "File formatted successfully"
         
-        elif std_task == "Count wednesdays":
+        elif std_task["category"] == "count wednesdays":
             date_file = "/data/dates.txt"
             output_file = "/data/dates-wednesdays.txt"
             if not os.path.exists(date_file):
@@ -100,15 +110,20 @@ def execute_task(task: str) -> str:
             
             with open(date_file, "r", encoding="utf-8") as file:
                 dates = file.readlines()
-            
-            wednesday_count = sum(1 for date in dates if datetime.strptime(date.strip(), "%Y-%m-%d").weekday() == 2)
+
+            wednesday_count = 0
+
+            for date_str in dates:
+                parsed_date = parser.parse(date_str.strip())
+                if parsed_date.weekday() == 2:
+                    wednesday_count += 1
             
             with open(output_file, "w", encoding="utf-8") as file:
                 file.write(str(wednesday_count))
             
             return f"Counted {wednesday_count} Wednesdays and wrote to {output_file}"
         
-        elif std_task == "Sort array of contacts":
+        elif std_task["category"] == "sort array of contacts":
             contacts_file = "/data/contacts.json"
             sorted_file = "/data/contacts-sorted.json"
             if not os.path.exists(contacts_file):
@@ -120,11 +135,11 @@ def execute_task(task: str) -> str:
             sorted_contacts = sorted(contacts, key=lambda c: (c["last_name"], c["first_name"]))
             
             with open(sorted_file, "w", encoding="utf-8") as file:
-                json.dump(sorted_contacts, file, indent=4)
+                json.dump(sorted_contacts, file)
             
             return f"Sorted contacts and wrote to {sorted_file}"
         
-        elif std_task == "Write 10 most recent logs":
+        elif std_task["category"] == "write 10 most recent logs":
             logs_dir = "/data/logs"
             output_file = "/data/logs-recent.txt"
             
@@ -148,7 +163,8 @@ def execute_task(task: str) -> str:
             
             return f"Extracted first lines from recent logs and wrote to {output_file}"
 
-        elif std_task == "Find markdown files and extract H1 tags":
+        elif std_task["category"] == "find markdown files and extract h1 tags":
+            # Incorrect output format and output different that expected
             docs_dir = "/data/docs"
             index_file = "/data/docs/index.json"
             
@@ -168,11 +184,11 @@ def execute_task(task: str) -> str:
                                     break
             
             with open(index_file, "w", encoding="utf-8") as f:
-                json.dump(index, f, indent=4)
+                json.dump(index, f)
             
             return f"Created Markdown index at {index_file}"
         
-        elif std_task == "Extract sender email address from email content":
+        elif std_task["category"] == "extract sender email address":
             email_file = "/data/email.txt"
             output_file = "/data/email-sender.txt"
             
@@ -191,7 +207,7 @@ def execute_task(task: str) -> str:
             
             return f"Extracted sender's email and wrote to {output_file}"
 
-        elif std_task == "Extract credit card number from the given image":
+        elif std_task["category"] == "extract credit card number":
             image_path = "/data/credit-card.png"
             output_file = "/data/credit-card.txt"
             
@@ -206,14 +222,14 @@ def execute_task(task: str) -> str:
             
             image_uri = f"data:image/png;base64,{image_b64}"
 
-            credit_card_number = api_call_to_llm(system_message, image_uri)
+            credit_card_number = api_call_to_llm(system=system_message, content=image_uri)
             
             with open(output_file, "w", encoding="utf-8") as file:
-                file.write(credit_card_number)
+                file.write(credit_card_number.strip())
             
             return f"Extracted credit card number and wrote to {output_file}"
 
-        elif std_task == "Find similar comments":
+        elif std_task["category"] == "find similar comments":
             comments_file = "/data/comments.txt"
             output_file = "/data/comments-similar.txt"
             
@@ -226,7 +242,7 @@ def execute_task(task: str) -> str:
             comment_embeddings = dict()
 
             for comment in comments:
-                embedding = api_call_to_llm("Find similar comments", comment, task="embeddings")
+                embedding = api_call_to_llm(system="Find similar comments", content=comment, task="embeddings")
                 comment_embeddings[comment] = embedding
 
             # Extract comments and embeddings
@@ -253,7 +269,7 @@ def execute_task(task: str) -> str:
             
             return f"Found most similar comments and wrote to {output_file}"
 
-        elif std_task == "Find total sales of 'Gold' ticket type in the db table":
+        elif std_task["category"] == "find total sales of 'gold' ticket type in the db table":
             query = "SELECT SUM(units * price) FROM tickets WHERE type = 'Gold'"
             result = execute_query(query)
             total_sales = result[0][0] if result[0][0] is not None else 0
@@ -269,8 +285,8 @@ def execute_task(task: str) -> str:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/run")
-def run_task(task: str = Query(..., description="Task description in plain English")):
-    """Executes a plain-English task and returns the output."""
+def run_task(task: str = Query(..., description="Task description")):
+    """Executes a task and returns the output."""
     result = execute_task(task)
     return {"status": "success", "output": result}
 
@@ -283,4 +299,4 @@ def read_file(path: str = Query(..., description="Path to the file")):
     with open(path, "r", encoding="utf-8") as file:
         content = file.read()
     
-    return {"status": "success", "content": content}
+    return content

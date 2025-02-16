@@ -16,11 +16,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3 -m venv /venv
 
 # Set working directory
-WORKDIR .
+WORKDIR /app
 
 # Copy code and requirements
-COPY . .
-COPY requirements.txt .
+COPY . /app
+COPY requirements.txt /app
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
