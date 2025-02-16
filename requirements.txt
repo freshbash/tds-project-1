@@ -10,3 +10,4 @@ python-dateutil
 faker
 pillow
 python-dotenv
+pytesseract
