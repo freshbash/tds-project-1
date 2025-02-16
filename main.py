@@ -293,7 +293,9 @@ def run_task(task: str = Query(..., description="Task description")):
 def read_file(path: str = Query(..., description="Path to the file")):
     """Returns the content of the specified file."""
     mod_path = os.path.join(os.getcwd(), path)
+    print(f"modified path:{mod_path}")
     print(os.listdir())
+    print(os.listdir("/data"))
     if not os.path.exists(mod_path):
         raise HTTPException(status_code=404, detail="File not found")
     
