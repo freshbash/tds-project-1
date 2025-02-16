@@ -269,7 +269,7 @@ def execute_task(task: str) -> str:
             return f"Found most similar comments and wrote to {output_file}"
 
         elif std_task["category"] == "find total sales of 'gold' ticket type in the db table":
-            query = "SELECT SUM(units * price) FROM tickets WHERE type = 'Gold'"
+            query = "SELECT SUM(total_sales) FROM (SELECT (units * price) AS total_sales FROM tickets WHERE LOWER(TRIM(type))='gold')"
             result = execute_query(query)
             total_sales = result[0][0] if result[0][0] is not None else 0
             with open("./data/ticket-sales-gold.txt", "w") as f:
