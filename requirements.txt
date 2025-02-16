@@ -11,4 +11,3 @@ faker
 pillow
 python-dotenv
 pytesseract
-sentence-transformers
